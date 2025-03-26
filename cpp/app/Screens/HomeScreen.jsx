@@ -7,10 +7,16 @@ import {
   Image,
   TextInput,
   TouchableOpacity,
+  Dimensions,
+  ActivityIndicator,
   Pressable,
-  FlatList,
-  
+  FlatList
 } from "react-native";
+import { SafeAreaView } from "react-native";
+import { WebView } from "react-native-webview";
+import * as WebBrowser from "expo-web-browser";
+
+
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
 import ProfileScreen from '../../assets/images/logo.png';
 import Icon from 'react-native-ico-material-design';
@@ -22,8 +28,15 @@ import { MaterialIcons, FontAwesome5,FontAwesome ,Ionicons} from "@expo/vector-i
 import { getAuth, onAuthStateChanged } from "firebase/auth";
 import { getFirestore, doc, getDoc } from "firebase/firestore";
 import { FIREBASE_APP } from "../login/FirebaseConfig"; 
-import DropDownPicker from "react-native-dropdown-picker";
-import NewsCarousel from "../Home/NewsCard";
+import Carousel from "react-native-snap-carousel-v4";
+
+import axios from "axios";
+import { parseString } from "react-native-xml2js";
+
+const { width } = Dimensions.get("window");
+
+const RSS_URL = "https://health.economictimes.indiatimes.com/rss/pharma/regulatory-update"; 
+
 
 const Tab = createBottomTabNavigator();
 
@@ -31,6 +44,7 @@ const auth = getAuth(FIREBASE_APP);
 const db = getFirestore(FIREBASE_APP);
 
 const HomeScreen = () => {
+  
     const router = useRouter();
     
     const handlehospital = () => {
@@ -68,7 +82,60 @@ const HomeScreen = () => {
       }
     };
     
- 
+    
+    const [news, setNews] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    fetchNews();
+  }, []);
+
+  const fetchNews = async () => {
+    try {
+      const response = await axios.get(RSS_URL);
+      parseString(response.data, (err, result) => {
+        if (!err) {
+          const items = result.rss.channel[0].item.map((item) => ({
+            title: item.title[0],
+            description: item.description[0],
+            link: item.link[0],
+            image: item["media:content"] ? item["media:content"][0].$.url : null,
+          }));
+          setNews(items);
+        }
+        setLoading(false);
+      });
+    } catch (error) {
+      console.error("Error fetching RSS feed:", error);
+      setLoading(false);
+    }
+  };
+
+  const openArticle = async (url) => {
+    await WebBrowser.openBrowserAsync(url);
+  };
+
+  const renderItem = ({ item }) => (
+    <TouchableOpacity style={styles.card1} onPress={() => openArticle(item.link)}>
+      {item.image && <Image source={{ uri: item.image }} style={styles.image} />}
+      <Text style={styles.title}>{item.title}</Text>
+      <Text style={styles.description} numberOfLines={3}>{item.description}</Text>
+      <Text style={styles.readMore}>Tap to read more</Text>
+    </TouchableOpacity>
+  );
+
+  if (loading) {
+    return (
+      <View style={styles.loaderContainer}>
+        <ActivityIndicator size="large" color="blue" />
+      </View>
+    );
+  }
+
+
+
+
+
     return (
       <ScrollView style={styles.container3}>
         {/* Header Section */}
@@ -76,34 +143,21 @@ const HomeScreen = () => {
         <View style={styles.header3}>
         <View style={styles.userInfo}>
           <Image
-            source={{ uri: profilePic || "https://via.placeholder.com/50" }}
+            source={{ uri: profilePic || "https://logodix.com/logo/69666.png" }}
             style={styles.profileImage}
           />
           <View>
             <Text style={styles.welcomeText}>Hi, Welcome Back</Text>
-            <Text style={styles.userName}>{user ? user.displayName || "User" : "Guest"}</Text>
+            <Text style={styles.userName}>{user ? user.displayName || "User" : "Rayyan"}</Text>
           </View>
         </View>
         
-        <View style={{ flex: 1 }}>
-      {/* HEADER */}
-      <View style={styles.headerIcons}>
-        {/* Globe Icon for Language Selection */}
-        <TouchableOpacity >
+          <View style={styles.headerIcons}>
           <FontAwesome name="globe" size={24} color="#4A90E2" style={styles.icon} />
-        </TouchableOpacity>
-
-       
-
-        {/* Other Icons */}
-        <FontAwesome name="bell" size={24} color="#4A90E2" style={styles.icon} />
-        <FontAwesome name="cog" size={24} color="#4A90E2" style={styles.icon} />
-      </View>
-
-      {/* MAIN CONTENT */}
-    
-    </View>
-  
+            <FontAwesome name="bell" size={24} color="#4A90E2" style={styles.icon} />
+            <FontAwesome name="cog" size={24} color="#4A90E2"  style={styles.icon}/>
+            
+          </View>
         </View>
   
         {/* Search and Actions */}
@@ -117,7 +171,7 @@ const HomeScreen = () => {
             </TouchableOpacity>
             
           <TouchableOpacity onPress={()=>{
-            router.push('/Home/Scanner');
+            router.navigate('/Screens/BarcodeScanner');
           }}>
             <View style={styles.actionButton}>
             <MaterialIcons name="qr-code-scanner" size={40} color="#4A90E2" />
@@ -138,7 +192,6 @@ const HomeScreen = () => {
         <TouchableOpacity onPress={() => router.push('/Home/Medical_hist')}>
         <View style={styles.banner} >
         <View style={styles.bannerContent}>
-            
       <View style={styles.bannerTextContainer}>
         <Text style={styles.bannerText1}> Check your Medical  History </Text>
         
@@ -218,7 +271,7 @@ const HomeScreen = () => {
         </View>
   
         {/* Know Your Cure */}
-        <TouchableOpacity onPress={medicine}>
+        <TouchableOpacity>
         <View style={styles.knowYourCureCard} >
           <View style={styles.cardHeader}>
             <Text style={styles.cardTitle} >Know Your Cure</Text >
@@ -227,21 +280,21 @@ const HomeScreen = () => {
             </TouchableOpacity>
           </View>
           <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.cureScroll} >
-            <TouchableOpacity style={styles.cureItem}>
+            <TouchableOpacity style={styles.cureItem} onPress={() => router.navigate('/Home/Medicine')}>
               <Image
                 source={{ uri: "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQwEbTQpFifrW_qPXNuNhwygIL7UbMrr9t1aA&s" }}
                 style={styles.cureImage}
               />
               <Text style={styles.cureText}>Fever</Text>
             </TouchableOpacity>
-            <TouchableOpacity style={styles.cureItem}>
+            <TouchableOpacity style={styles.cureItem}  onPress={() => router.push({ pathname: "/Home/Medicine"})}>
               <Image
-                source={{ uri: "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTdmf0ugfQ6BJ-tfno95jbY2RVdRepB_nUxQw&s" }}
+                source={{ uri: "https://imgs.search.brave.com/o5A79ZahrIWk8-wjVUdAeBKE5ZrVjeiNr1dECHn1IBY/rs:fit:500:0:0:0/g:ce/aHR0cHM6Ly90My5m/dGNkbi5uZXQvanBn/LzA2LzExLzA4LzY0/LzM2MF9GXzYxMTA4/NjQ3OF82V3prejBS/MThKVHJGanduR04z/SW5EM1R5b29HaFpt/Qi5qcGc" }}
                 style={styles.cureImage}
               />
-              <Text style={styles.cureText}>Cold</Text>
+              <Text style={styles.cureText} >Eye Infection</Text>
             </TouchableOpacity>
-            <TouchableOpacity style={styles.cureItem}>
+            <TouchableOpacity style={styles.cureItem} >
               <Image
                 source={{ uri: "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSBVnbZ4HZ0650lMtCgdmp1KB19LwM6fh82b64l8aKs119QbpgkaG2ogKtYevePQAixgIo&usqp=CAU" }}
                 style={styles.cureImage}
@@ -261,9 +314,25 @@ const HomeScreen = () => {
         </TouchableOpacity>
   
         {/* News & Updates */}
-        <View style={styles.newsCard}>
-          <NewsCarousel/>
-        </View>        
+     
+      <View style={styles.container9}>
+      <Text style={styles.cardTitle} >Regulatory & Update</Text >
+      {news.length > 0 ? (
+        <Carousel
+        data={news}
+        renderItem={renderItem}
+        sliderWidth={width}
+        itemWidth={width * 0.8}
+        loop
+        autoplay
+        />
+      ) : (
+        <Text style={{ textAlign: "center", marginTop: 20 }}>No news available</Text>
+      )}
+    </View>
+  
+
+        
         </ScrollView>
     );
   
@@ -273,7 +342,9 @@ const HomeScreen = () => {
       flex: 1,
       backgroundColor: "#fff",
       padding: 20,
+      
     },
+   
     header3: {
       flexDirection: "row", // Ensures the elements are placed side by side
       alignItems: "center",  // Vertically align elements in the center
@@ -511,66 +582,51 @@ const HomeScreen = () => {
       color: "#4A90E2",
       textAlign: "right",
     },
-    newsCard: {
-      backgroundColor: "#F5F5F5",
-      borderRadius: 10,
-      padding: 20,
-      marginBottom: 90,
+    container9: {
+      marginTop: 20,
+      marginBottom: 70,
     },
-    newsImage: {
+    card1: {
+      backgroundColor: "#EAF3FF",
+      borderRadius: 10,
+      padding: 15,
+      shadowColor: "#000",
+      shadowOffset: { width: 0, height: 2 },
+      shadowOpacity: 0.2,
+      shadowRadius: 4,
+      elevation: 5,
+      alignItems: "center",
+    },
+    image: {
       width: "100%",
       height: 150,
       borderRadius: 10,
-      marginBottom: 10,
     },
-    newsText: {
-      fontSize: 14,
-      color: "#666",
-      marginBottom: 10,
-    },
-    footer: {
-      width:"100%",
-      backgroundColor: "#fff",
-      borderRadius: 10,
-      alignItems: "center",
-      marginBottom: 95,
-      padding:20,
-     
-    },
-    footerText: {
-      fontSize: 14,
-      color: "#666",
-      marginBottom: 5,
-    },
-    footerIcons: {
-      flexDirection: "row",
-      marginVertical: 10,
-    },
-    footerIcon: {
-      fontSize: 14,
-      color: "#4A90E2",
-      marginHorizontal: 5,
-    },
-    footerLinks: {
-      flexDirection: "row",
+    title: {
+      fontSize: 18,
+      fontWeight: "bold",
       marginTop: 10,
+      textAlign: "center",
     },
-    footerLink: {
+    description: {
       fontSize: 14,
-      color: "#4A90E2",
-      marginHorizontal: 10,
+      color: "#555",
+      marginTop: 5,
+      textAlign: "center",
     },
-    dropdownContainer: {
-      position: "absolute",
-      top: 30,
-      left: -10,
-      width: 180,
-      zIndex: 1000,
+    readMore: {
+      marginTop: 10,
+      fontSize: 14,
+      color: "blue",
+      fontWeight: "bold",
     },
-    dropdown: {
-      backgroundColor: "#fff",
+    loaderContainer: {
+      flex: 1,
+      justifyContent: "center",
+      alignItems: "center",
     },
-    
   });
+    
+  
 
   export default HomeScreen;
