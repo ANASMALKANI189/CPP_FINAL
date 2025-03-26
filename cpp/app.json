@@ -1,0 +1,49 @@
+{
+  "expo": {
+    "name": "med-check",
+    "slug": "med-check",
+    "version": "1.0.0",
+    "extra": {
+      "GOOGLE_TRANSLATE_API_KEY": "AIzaSyAHWJNTSBTIjfuHssMXlM_CL0lpppCu45c"
+    },
+    "orientation": "portrait",
+    "icon": "./assets/images/logo.png",
+    "scheme": "myapp",
+    "backgroundColor": "#1E90FF",
+    "userInterfaceStyle": "automatic",
+    "newArchEnabled": true,
+    "ios": {
+      "supportsTablet": true
+    },
+    "android": {
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/images/logo.png",
+        "backgroundColor": "#EAF3FF"
+      }
+    },
+    "web": {
+      "bundler": "metro",
+      "output": "static",
+      "favicon": "./assets/images/logo.png"
+    },
+    "plugins": [
+      [
+        "expo-camera",
+        {
+          "cameraPermission": "Allow $(PRODUCT_NAME) to access your camera",
+          "microphonePermission": "Allow $(PRODUCT_NAME) to access your microphone",
+          "recordAudioAndroid": true
+        }
+      ],
+      [
+        "expo-barcode-scanner",
+        {
+          "cameraPermission": "Allow $(PRODUCT_NAME) to scan barcodes"
+        }
+      ]
+    ],
+    "experiments": {
+      "typedRoutes": true
+    }
+  }
+}
